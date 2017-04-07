@@ -1,0 +1,4 @@
+target remote localhost:1234
+b *0x7c00
+b *0x100508
+b *0x200000
