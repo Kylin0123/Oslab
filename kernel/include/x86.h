@@ -7,6 +7,8 @@
 #include "x86/irq.h"
 
 void initSeg(void);
-void loadUMain(void);
+void enterUserSpace(uint32_t entry);
+uint32_t loadUMain(void);
+void initPcb(uint32_t entry);
 
 #endif

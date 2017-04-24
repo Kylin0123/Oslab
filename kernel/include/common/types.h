@@ -10,11 +10,13 @@ typedef unsigned char  uint8_t;
 typedef          char  int8_t;
 typedef unsigned int   size_t;
 
-#define _NR_exit 1
-#define _NR_fork 2
-#define _NR_read 3
-#define _NR_write 4
-#define _NR_open 5
-#define _NR_close 6
+#define _NR_exit    1
+#define _NR_fork    2
+#define _NR_read    3
+#define _NR_write   4
+#define _NR_open    5
+#define _NR_close   6
+
+#define _NR_sleep   162
 
 #endif

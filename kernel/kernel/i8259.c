@@ -6,6 +6,7 @@
 
 /* 初始化8259中断控制器：
  * 硬件中断IRQ从32号开始，自动发送EOI */
+
 void
 initIntr(void) {
 	outByte(PORT_PIC_MASTER + 1, 0xFF);
@@ -23,4 +24,6 @@ initIntr(void) {
 	outByte(PORT_PIC_MASTER, 0x0A);
 	outByte(PORT_PIC_SLAVE, 0x68);
 	outByte(PORT_PIC_SLAVE, 0x0A);
+
 }
+

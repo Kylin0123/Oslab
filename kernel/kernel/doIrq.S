@@ -17,12 +17,28 @@ irqSyscall:
 	pushl $0x80 // push interrupt vector into kernel stack
 	jmp asmDoIrq
 
+.global irqTimer
+irqTimer:
+	pushl $0 // push dummy error code
+	pushl $0x20 // push interrupt vector into kernel stack
+	jmp asmDoIrq
+
 .global asmDoIrq
 asmDoIrq:
 	pushal // push process state into kernel stack
+
+    //TODO: push ds,es,fs,gs
+    pushl %ds
+    pushl %es
+    pushl %fs
+    pushl %gs
+
 	pushl %esp
 	call irqHandle
 	addl $4, %esp
+
+    addl $16, %esp
+
 	popal
 	addl $4, %esp //interrupt vector is on top of kernel stack
 	addl $4, %esp //error code is on top of kernel stack

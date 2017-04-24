@@ -7,15 +7,6 @@
 int32_t syscall(int num, uint32_t a1,uint32_t a2,
 		uint32_t a3, uint32_t a4, uint32_t a5)
 {
-	//int32_t ret = 0;
-    /*asm volatile("movl %0,%%eax;\
-                movl %1,%%ecx;\
-                movl %2,%%edx;\
-                movl %3,%%ebx;\
-                int $0x80;\
-                 "::"r"(num),"r"(a1),"r"(a2),"r"(a3)
-                );
-    */
 	/* 内嵌汇编 保存 num, a1, a2, a3, a4, a5 至通用寄存器*/
     asm volatile("movl %0,%%eax;\
                 movl %1,%%ebx;\
@@ -27,7 +18,7 @@ int32_t syscall(int num, uint32_t a1,uint32_t a2,
                  "::"m"(num),"m"(a1),"m"(a2),"m"(a3),"m"(a4),"m"(a5)
                 );
     
-	return 0;//ret;
+	return 0;
 }
 
 void __attribute__ ((noinline)) printch(char ch){
@@ -85,10 +76,9 @@ void printx(uint32_t xval){
 }
 
 void printf(const char * volatile format,...){
+    asm volatile("pushl %ebx");
     va_list volatile arg_ptr = (void *)&format;
     va_start(arg_ptr, format);
-    //printch(*format);
-    //printch(*(format+1));
     while(*format){
         if(*format == '%'){
             format++;
@@ -127,5 +117,5 @@ void printf(const char * volatile format,...){
 
     }
     va_end(arg_ptr);
-    //asm volatile("int $0x80");
+    asm volatile("popl %ebx");
 }

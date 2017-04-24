@@ -21,6 +21,7 @@
 #define SEG_UCODE   3           // User code
 #define SEG_UDATA   4           // User data/stack
 #define SEG_TSS     5           // Global unique task state segement
+#define SEG_VIDEO   6
 
 // Selectors
 #define KSEL(desc) (((desc) << 3) | DPL_KERN)
@@ -37,9 +38,34 @@ struct GateDescriptor {
 	uint32_t offset_31_16     : 16;
 };
 
-struct TrapFrame {
+/*struct TrapFrame {
 	uint32_t edi, esi, ebp, xxx, ebx, edx, ecx, eax;
 	int32_t irq;
+};*/
+struct TrapFrame {
+    uint32_t gs, fs, es, ds;
+    uint32_t edi, esi, ebp, xxx, ebx, edx, ecx, eax;
+    uint32_t irq;                   // 中断号
+    uint32_t error;                 // Error Code
+    uint32_t eip, cs, eflags, esp, ss;
+};
+
+//TODO: PCB implementation
+#define RUNNING     0
+#define RUNNABLE    1
+#define BLOCKED     2
+#define DEAD        3
+
+#define MAX_PCB_NUM     512
+#define MAX_STACK_SIZE  8192
+struct ProcessTable {
+    uint32_t    stack[MAX_STACK_SIZE]; // 内核堆栈
+    struct TrapFrame    tf;
+    int         state;
+    int         timeCount;
+    int         sleepTime;
+    uint32_t    pid;
+    int         valid;
 };
 
 /*

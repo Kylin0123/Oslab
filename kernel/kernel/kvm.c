@@ -4,6 +4,8 @@
 
 SegDesc gdt[NR_SEGMENTS];
 TSS tss;
+struct ProcessTable pcb[MAX_PCB_NUM];
+int current_pcb;
 
 #define SECTSIZE 512
 
@@ -35,15 +37,16 @@ void initSeg() {
 	gdt[SEG_UDATA] = SEG(STA_W,         0,       0xffffffff, DPL_USER);
 	gdt[SEG_TSS] = SEG16(STS_T32A,      &tss, sizeof(TSS)-1, DPL_KERN);
 	gdt[SEG_TSS].s = 0;
+    gdt[SEG_VIDEO] = SEG(STA_W,0xb8000,0xffffffff,DPL_KERN);
 	setGdt(gdt, sizeof(gdt));
 
-    gdt[6] = SEG(STA_W,0xb8000,0xffffffff,DPL_KERN);
 	/*
 	 * 初始化TSS
 	 */
 
     tss.ss0 = 0x10;
-    tss.esp0 = 0x8000000;
+    //tss.esp0 = 0x8000000;
+    tss.esp0 = 0x7f00000;
 	asm volatile("ltr %%ax":: "a" (KSEL(SEG_TSS)));
 
 	/*设置正确的段寄存器*/
@@ -71,15 +74,16 @@ void __attribute__((noinline)) enterUserSpace(uint32_t entry) {
                   movl %%eax,%%ds;\
                   movl %%eax,%%es;\
                   pushl %%eax;\
-                  pushl $0x7f00000;\
+                  pushl $0x7d00000;\
                   pushf;\
                   pushl $0x1b;\
                   pushl %0;\
                   "::"m"(entry));
+    enableInterrupt();
 	asm volatile("iret");
 }
 
-void loadUMain(void) {
+uint32_t loadUMain(void) {
 
 	/*加载用户程序至内存*/
     char buf[12*SECTSIZE];    //size of uMain.elf
@@ -89,8 +93,55 @@ void loadUMain(void) {
     }
     struct ELFHeader *elf = (void *)buf;
     struct ProgramHeader *ph = (void *)buf + elf->phoff;
-    memcpy((void *)ph->vaddr, buf + ph->off, ph->memsz);
+    i = 0;
+    for(;i < elf->phnum;i++,ph++)
+        memcpy((void *)ph->vaddr, buf + ph->off, ph->memsz);
     //void (*uEntry_addr)(void) = (void *)elf->entry;
     //uEntry_addr();
-    enterUserSpace(elf->entry);
+    //enterUserSpace(elf->entry);
+    return elf->entry;
 }
+
+void IDLE_process(){
+    while(1)
+        waitForInterrupt();
+}
+
+extern void init_all_pcbs();
+extern int index_of_no_use_pcb();
+extern void del_pcb_by_index(int i);
+
+void initPcb(uint32_t entry){
+    init_all_pcbs();
+    //initial IDLE PCB
+    int i = index_of_no_use_pcb();
+    pcb[i].pid = 0;
+    pcb[i].sleepTime = 0;
+    pcb[i].timeCount = 10;
+    pcb[i].state = RUNNABLE;
+    pcb[i].tf.cs = 0x8;
+    pcb[i].tf.eip = (uint32_t)IDLE_process;
+    pcb[i].tf.eflags = 0x202;
+    pcb[i].tf.ss = 0x10;
+    pcb[i].tf.esp = 0x7e00000;
+
+    pcb[i].tf.ebp = 0x7e00000;
+
+    //inital UserPr PCB
+    i = index_of_no_use_pcb();
+    pcb[i].pid = 1;
+    pcb[i].sleepTime = 0;
+    pcb[i].timeCount = 10;
+    pcb[i].state = RUNNING;
+    pcb[i].tf.cs = 0x1b;
+    pcb[i].tf.eip = (uint32_t)entry;
+    pcb[i].tf.eflags = 0x202;
+    pcb[i].tf.ss = 0x23;
+    pcb[i].tf.esp = 0x7d00000;
+
+    pcb[i].tf.ebp = 0x7d00000;
+
+    current_pcb = 1; 
+}
+
+

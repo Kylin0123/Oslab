@@ -14,17 +14,17 @@ typedef int32_t  pid_t;
 
 typedef char* va_list;
 #define _INTSIZEOF(n) ((sizeof(n)+sizeof(int)-1)&~(sizeof(int)-1))
-//#define _INTSIZEOF(n) (sizeof(n))
 #define va_start(ap,v) (ap = (va_list)&(v) + _INTSIZEOF(v))
-//#define va_arg(ap,t,ret) ret=*ap;ap+=_INTSIZEOF(t)
 #define va_arg(ap,t) (*(t *)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t)))
 #define va_end(ap) (ap = (va_list)0)
 
-#define _NR_exit 1
-#define _NR_fork 2
-#define _NR_read 3
-#define _NR_write 4
-#define _NR_open 5
-#define _NR_close 6
+#define _NR_exit    1
+#define _NR_fork    2
+#define _NR_read    3
+#define _NR_write   4
+#define _NR_open    5
+#define _NR_close   6
+
+#define _NR_sleep   162
 
 #endif
