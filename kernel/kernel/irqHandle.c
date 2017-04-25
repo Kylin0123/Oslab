@@ -60,8 +60,10 @@ void irqHandle(struct TrapFrame *tf) {
             update_pcb();
             if(current_pcb != 0 && pcb[current_pcb].timeCount <= 0){
                 pcb[current_pcb].state = RUNNABLE;
+                schedule_pcb();
             }
-            schedule_pcb();
+            else if(current_pcb == 0)
+                schedule_pcb();
             putChar('0'+current_pcb);
             recovery_pcb(tf);
             break;
