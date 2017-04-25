@@ -68,10 +68,22 @@ void update_pcb(){
     }
 }
 
-void __attribute__ ((noinline)) recovery_pcb(struct TrapFrame *tf){
+extern SegDesc gdt[NR_SEGMENTS];
+
+void recovery_pcb(struct TrapFrame *tf){
     pcb[current_pcb].state = RUNNING;
     *tf = pcb[current_pcb].tf;
     tf->ebp = pcb[current_pcb].tf.ebp;
+    if(current_pcb == 2){      //child proc
+        gdt[SEG_UDATA].base_15_0 = 0;
+        gdt[SEG_UDATA].base_23_16 = 0;
+        gdt[SEG_UDATA].base_31_24 = 1;
+    }
+    else{                      //parent proc
+        gdt[SEG_UDATA].base_15_0 = 0;
+        gdt[SEG_UDATA].base_23_16 = 0;
+        gdt[SEG_UDATA].base_31_24 = 0;
+    }
 }
 
 

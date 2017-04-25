@@ -45,7 +45,6 @@ void initSeg() {
 	 */
 
     tss.ss0 = 0x10;
-    //tss.esp0 = 0x8000000;
     tss.esp0 = 0x7f00000;
 	asm volatile("ltr %%ax":: "a" (KSEL(SEG_TSS)));
 
@@ -74,7 +73,7 @@ void __attribute__((noinline)) enterUserSpace(uint32_t entry) {
                   movl %%eax,%%ds;\
                   movl %%eax,%%es;\
                   pushl %%eax;\
-                  pushl $0x7d00000;\
+                  pushl $0x6d00000;\
                   pushf;\
                   pushl $0x1b;\
                   pushl %0;\
@@ -96,9 +95,6 @@ uint32_t loadUMain(void) {
     i = 0;
     for(;i < elf->phnum;i++,ph++)
         memcpy((void *)ph->vaddr, buf + ph->off, ph->memsz);
-    //void (*uEntry_addr)(void) = (void *)elf->entry;
-    //uEntry_addr();
-    //enterUserSpace(elf->entry);
     return elf->entry;
 }
 
@@ -124,7 +120,6 @@ void initPcb(uint32_t entry){
     pcb[i].tf.eflags = 0x202;
     pcb[i].tf.ss = 0x10;
     pcb[i].tf.esp = 0x7e00000;
-
     pcb[i].tf.ebp = 0x7e00000;
 
     //inital UserPr PCB
@@ -137,9 +132,8 @@ void initPcb(uint32_t entry){
     pcb[i].tf.eip = (uint32_t)entry;
     pcb[i].tf.eflags = 0x202;
     pcb[i].tf.ss = 0x23;
-    pcb[i].tf.esp = 0x7d00000;
-
-    pcb[i].tf.ebp = 0x7d00000;
+    pcb[i].tf.esp = 0x6d00000;
+    pcb[i].tf.ebp = 0x6d00000;
 
     current_pcb = 1; 
 }

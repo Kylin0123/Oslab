@@ -11,6 +11,7 @@ extern void update_pcb();
 extern void recovery_pcb();
 extern int index_of_no_use_pcb();
 extern void del_pcb_by_pid(int i);
+extern SegDesc gdt[NR_SEGMENTS];
 
 void __attribute__ ((noinline)) sys_write(volatile struct TrapFrame *tf){
     volatile char val_ascii = tf->ebx;
@@ -38,8 +39,9 @@ void irqHandle(struct TrapFrame *tf) {
 	 * 中断处理程序
 	 */
 	/* Reassign segment register */
+
     asm volatile("\
-            movw $0x20,%ax;\
+            movw $0x10,%ax;\
             movw %ax,%ds;\
             movw %ax,%es;\
             movw $0x30,%ax;\
@@ -60,9 +62,7 @@ void irqHandle(struct TrapFrame *tf) {
                 pcb[current_pcb].state = RUNNABLE;
             }
             schedule_pcb();
-            putChar(' ');
             putChar('0'+current_pcb);
-            putChar(' ');
             recovery_pcb(tf);
             break;
         }
@@ -84,7 +84,6 @@ void syscallHandle(struct TrapFrame *tf) {
 	/* 实现系统调用*/
     switch(tf->eax){
         case _NR_exit:{
-            putChar('E');
             del_pcb_by_pid(current_pcb);
             schedule_pcb();
             update_pcb();
@@ -92,28 +91,34 @@ void syscallHandle(struct TrapFrame *tf) {
             break;
         }
         case _NR_fork:{
-            putChar('F');
             save_pcb(tf);
             
             int i = index_of_no_use_pcb();
-            //pcb[i] = pcb[current_pcb];
             pcb[i].tf = pcb[current_pcb].tf;
             pcb[i].tf.eax = 0;
             pcb[i].pid = i;
             pcb[i].timeCount = 10;
             pcb[i].sleepTime = 0;
             pcb[i].state = RUNNABLE;
-            pcb[i].tf.esp = pcb[current_pcb].tf.esp - 0x1000000;
-            pcb[i].tf.ebp = pcb[current_pcb].tf.ebp - 0x1000000;
-            memcpy((void*)pcb[i].tf.esp, (void*)pcb[current_pcb].tf.esp, 0x6d00000-pcb[i].tf.esp);
-            //pcb[current_pcb].state = RUNNING;
+
+            //pcb[i].tf.esp = pcb[current_pcb].tf.esp - 0x1000000;
+            //pcb[i].tf.ebp = pcb[current_pcb].tf.ebp - 0x1000000;
+            pcb[i].tf.esp = pcb[current_pcb].tf.esp;
+            pcb[i].tf.ebp = pcb[current_pcb].tf.ebp;
+            
+
+            memcpy((void*)pcb[i].tf.esp+0x1000000, (void*)pcb[current_pcb].tf.esp, 0x6d00000-pcb[i].tf.esp);
+            
+            memcpy((void*)0x1000000 + 0x200000, (void*)0x200000, 0x2000);
+
             pcb[current_pcb].tf.eax = pcb[i].pid;
             
             current_pcb = i; 
             pcb[current_pcb].state = RUNNING;
 
+            /*Change to user process space*/
+           
             recovery_pcb(tf);
-            putChar('0'+current_pcb);
             break;
         }
         case _NR_write:{
@@ -121,16 +126,12 @@ void syscallHandle(struct TrapFrame *tf) {
             break;
         }
         case _NR_sleep:{
-            putChar('S');
-            putChar('0'+current_pcb);
             save_pcb(tf);
             update_pcb();
             pcb[current_pcb].sleepTime = tf->ebx;
             pcb[current_pcb].state = BLOCKED;
             schedule_pcb();
             recovery_pcb(tf);
-            putChar('0'+current_pcb);
-            asm volatile("nop;nop");
             break;                   
         }
         default:assert(0);
