@@ -1,28 +1,26 @@
+#include "types.h"
 #include "lib.h"
 
-int data = 0;
-
 int uEntry(void) {
-    int ret = fork();
-    int i = 8;
+    int fd = 0;
+    int i = 0;
+    char tmp = 0;
 
-    if (ret == 0) {
-        data = 2;
-        while( i != 0) {
-            i --;
-            printf("Child Process: Pong %d, %d;\n", data, i);
-            sleep(128);
-        }
-        exit();
+    ls("/");                                   // 列出"/"目录下的所有文件
+    ls("/boot/");                              // 列出"/boot/"目录下的所有文件
+    ls("/dev/");                               // 列出"/dev/"目录下的所有文件
+    ls("/usr/");                               // 列出"/usr/"目录下的所有文件
+    
+    printf("create /usr/test and write alphabets to it\n");
+    fd = open("/usr/test", O_RDWR | O_CREAT);  // 创建文件"/usr/test"
+    for (i = 0; i < 512; i ++) {               // 向"/usr/test"文件中写入字母表
+        tmp = (char)(i % 26 + 'A');
+        write(fd, (uint8_t*)&tmp, 1);
     }
-    else if (ret != -1) {
-        data = 1;
-        while( i != 0) {
-            i --;
-            printf("Father Process: Ping %d, %d;\n", data, i);
-            sleep(128);
-        }
-        exit();
-    }
+    close(fd);
+    ls("/usr/");                               // 列出"/usr/"目录下的所有文件
+    cat("/usr/test");                          // 在终端中打印"/usr/test"文件的内容
+    
+    exit();
     return 0;
 }

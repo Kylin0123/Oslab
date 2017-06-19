@@ -119,3 +119,124 @@ void printf(const char * volatile format,...){
     va_end(arg_ptr);
     asm volatile("popl %ebx");
 }
+
+int sem_init(sem_t *sem, uint32_t value){
+    int ret,tmp;
+    asm volatile("\
+        movl $64, %%eax;\
+        movl %2, %%edx;\
+        int $0x80;\
+        movl %%eax, %0;\
+        movl %%ecx, %1;\
+        ":"=m"(ret),"=m"(tmp):"m"(value));
+    *sem = tmp;
+    return ret;
+}
+
+int sem_post(sem_t *sem){
+    int ret;
+    int tmp = *sem;
+    asm volatile("\
+        movl $65, %%eax;\
+        movl %1, %%ecx;\
+        int $0x80;\
+        movl %%eax, %0;\
+        ":"=m"(ret):"m"(tmp));
+    return ret;
+}
+
+int sem_wait(sem_t *sem){
+    int tmp = *sem;
+    int ret;
+    asm volatile("\
+        movl $66, %%eax;\
+        movl %1, %%ecx;\
+        int $0x80;\
+        movl %%eax, %0;\
+        ":"=m"(ret):"m"(tmp));
+    return ret;
+}
+
+int sem_destroy(sem_t *sem){
+    int tmp = *sem;
+    int ret;
+    asm volatile("\
+        movl $67, %%eax;\
+        movl %1, %%ecx;\
+        int $0x80;\
+        movl %%eax, %0;\
+        ":"=m"(ret):"m"(tmp));
+    return ret;
+}
+
+int open(char *path, int flags){
+    int ret;
+    asm volatile("\
+        movl %1, %%eax;\
+        movl %2, %%ebx;\
+        movl %3, %%ecx;\
+        int $0x80;\
+        movl %%eax, %0;\
+        ":"=m"(ret):"i"(_NR_open),"m"(path),"m"(flags));
+    //printf("open:%d\n",ret);
+    return ret;
+}
+
+int read(int fd, void *buffer, int size){
+    int ret;
+    asm volatile("\
+        pushl %%ebx;\
+        movl %1, %%eax;\
+        movl %2, %%ebx;\
+        movl %3, %%ecx;\
+        movl %4, %%edx;\
+        int $0x80;\
+        movl %%eax, %0;\
+        popl %%ebx;\
+        ":"=m"(ret):"i"(_NR_read),"m"(fd),"r"(buffer),"m"(size));
+    return ret;
+}
+
+int write(int fd, void *buffer, int size){
+    int ret;
+    asm volatile("\
+        pushl %%ebx;\
+        movl %1, %%eax;\
+        movl %2, %%ebx;\
+        movl %3, %%ecx;\
+        movl %4, %%edx;\
+        int $0x80;\
+        movl %%eax, %0;\
+        popl %%ebx;\
+        ":"=m"(ret):"i"(_NR_fwrite),"m"(fd),"m"(buffer),"m"(size));
+    return ret;
+}
+
+int lseek(int fd, int offset, int whence){
+    return 0;
+}
+
+int close(int fd){
+    return 0;
+}
+
+int remove(char *path){
+    return 0;
+}
+
+void ls(char *path){
+    int fd = open(path, O_RDONLY);
+    char buffer[100] = "should not occur";
+    read(fd, buffer, 100);
+    printf("%s\n",buffer);
+}
+
+#include<string.h>
+
+void cat(char *path){
+    int fd = open(path, O_RDONLY);
+    char buffer[1024] = "should not occur";
+    read(fd, buffer, 1024);
+    printf("%s\n",buffer);
+}
+

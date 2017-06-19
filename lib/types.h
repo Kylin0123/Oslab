@@ -11,6 +11,7 @@ typedef unsigned char  boolean;
 
 typedef uint32_t size_t;
 typedef int32_t  pid_t;
+typedef int32_t  sem_t;
 
 typedef char* va_list;
 #define _INTSIZEOF(n) ((sizeof(n)+sizeof(int)-1)&~(sizeof(int)-1))
@@ -24,7 +25,16 @@ typedef char* va_list;
 #define _NR_write   4
 #define _NR_open    5
 #define _NR_close   6
-
+#define _NR_fwrite  7
+#define _NR_seminit 64
+#define _NR_sempost 65
+#define _NR_semwait 66
+#define _NR_semdestroy 67
 #define _NR_sleep   162
+
+#define O_RDONLY    00000000
+#define O_RDWR      00000002
+#define O_CREAT     00000100	
+
 
 #endif

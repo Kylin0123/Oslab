@@ -38,10 +38,11 @@ struct GateDescriptor {
 	uint32_t offset_31_16     : 16;
 };
 
-/*struct TrapFrame {
-	uint32_t edi, esi, ebp, xxx, ebx, edx, ecx, eax;
-	int32_t irq;
-};*/
+//struct TrapFrame {
+//	uint32_t edi, esi, ebp, xxx, ebx, edx, ecx, eax;
+//	int32_t irq;
+//};
+
 struct TrapFrame {
     uint32_t gs, fs, es, ds;
     uint32_t edi, esi, ebp, xxx, ebx, edx, ecx, eax;
@@ -58,6 +59,7 @@ struct TrapFrame {
 
 #define MAX_PCB_NUM     512
 #define MAX_STACK_SIZE  8192
+
 struct ProcessTable {
     uint32_t    stack[MAX_STACK_SIZE]; // 内核堆栈
     struct TrapFrame    tf;
@@ -66,6 +68,11 @@ struct ProcessTable {
     int         sleepTime;
     uint32_t    pid;
     int         valid;
+};
+
+struct semaphore{
+    int value;
+    struct ProcessTable * list;
 };
 
 /*
@@ -131,5 +138,67 @@ static inline void lLdt(uint16_t sel)
 {
 	asm volatile("lldt %0" :: "r"(sel));
 }
+
+/*File system structures*/
+#define POINTER_NUM     10
+#define NAME_LENGTH     10
+#define SUPER_BLOCK_SIZE    1024
+#define GROUP_DESC_SIZE     1024
+#define INODE_SIZE      1024
+#define DIRENTRY_SIZE   (4+NAME_LENGTH)
+union SuperBlock {
+      uint8_t byte[SUPER_BLOCK_SIZE];
+      struct {
+             int32_t sectorNum;                   // 文件系统中扇区总数
+             int32_t inodeNum;                    // 文件系统中inode总数
+             int32_t blockNum;                    // 文件系统中data block总数
+             int32_t availInodeNum;               // 文件系统中可用inode总数
+             int32_t availBlockNum;               // 文件系统中可用data block总数
+             int32_t blockSize;                   // 每个block所含字节数
+             int32_t inodesPerGroup;              // 每个group所含inode数
+             int32_t blocksPerGroup;              // 每个group所含data block数
+      };
+};
+
+union GroupDesc {                                 // Group Descriptor Table的表项
+      uint8_t byte[GROUP_DESC_SIZE];
+      struct {
+             int32_t inodeBitmap;                 // 该group中inodeBitmap的偏移量
+             int32_t blockBitmap;                 // 该group中blockBitmap的偏移量
+             int32_t inodeTable;                  // 该group中inodeTable的偏移量
+             int32_t availInodeNum;               // 该group中可用inode总数
+             int32_t availBlockNum;               // 该group中可用data block总数
+      };
+};
+
+union Inode {                                     // Inode Table的表项
+      uint8_t byte[INODE_SIZE];
+      struct {
+             int16_t type;                        // 该文件的类型、访存控制等
+             int16_t linkCount;                   // 该文件的链接数
+             int32_t blockCount;                  // 该文件的data block总数
+             int32_t size;                        // 该文件所含字节数
+             int32_t pointer[POINTER_NUM];        // data block偏移量
+             int32_t singlyPointer;               // 一级data block偏移量索引
+             int32_t doublyPointer;               // 二级data block偏移量索引
+             int32_t triplyPointer;               // 三级data block偏移量索引
+      };
+};
+
+union DirEntry {                                  // 目录文件的表项
+      uint8_t byte[DIRENTRY_SIZE];
+      struct {
+             int32_t inode;                       // 该目录项对应的inode的偏移量
+             char name[NAME_LENGTH];              // 该目录项对应的文件名
+      };
+};
+
+union DirEntryTable {
+    uint8_t byte[1024];
+    struct{
+        uint32_t size;
+        union DirEntry dirs[3];
+    };
+};
 
 #endif

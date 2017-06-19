@@ -50,4 +50,8 @@ static inline void outByte(uint16_t port, int8_t data) {
 	asm volatile("out %%al, %%dx" : : "a"(data), "d"(port));
 }
 
+static inline void outLong(uint16_t port, uint32_t data) {
+    asm volatile("out %0, %1" : : "a"(data), "d"(port));
+}
+
 #endif

@@ -2,12 +2,18 @@
 #include "device.h"
 #include<string.h>
 
+#define SECTSIZE 512
+
 SegDesc gdt[NR_SEGMENTS];
 TSS tss;
 struct ProcessTable pcb[MAX_PCB_NUM];
 int current_pcb;
-
-#define SECTSIZE 512
+struct semaphore sem;
+union SuperBlock sb;
+union GroupDesc gd;
+uint8_t InodeBitmap[2*SECTSIZE];
+uint8_t BlockBitmap[2*SECTSIZE];
+union Inode ids[10];
 
 void waitDisk(void) {
 	while((inByte(0x1F7) & 0xC0) != 0x40); 
@@ -28,6 +34,23 @@ void readSect(void *dst, int offset) {
 	for (i = 0; i < SECTSIZE / 4; i ++) {
 		((int *)dst)[i] = inLong(0x1F0);
 	}
+}
+
+void writeSect(void *src, int offset) {
+    int i;
+    waitDisk();
+
+    outByte(0x1F2, 1);
+    outByte(0x1F3, offset);
+    outByte(0x1F4, offset >> 8);
+    outByte(0x1F5, offset >> 16);
+    outByte(0x1F6, (offset >> 24) | 0xE0);
+    outByte(0x1F7, 0x30);
+
+    waitDisk();
+    for (i = 0; i < SECTSIZE / 4; i ++) {
+        outLong(0x1F0, ((uint32_t *)src)[i]);
+    }
 }
 
 void initSeg() {
@@ -83,18 +106,37 @@ void __attribute__((noinline)) enterUserSpace(uint32_t entry) {
 }
 
 uint32_t loadUMain(void) {
+    //Load File System to memory
+    
+#define OneBlockRead(STRUCT) do{ \
+    readSect(buf, i++); \
+    readSect(buf + SECTSIZE, i++); \
+    memcpy(&STRUCT, buf, 1024); \
+}while(0)
 
+    //18 blocks 1*SuperBlock 1*GroupDesc 1*InodeBitmap 1*BlockBitmap 10*Inode
+    char buf[2*SECTSIZE];
+    int i = 201;
+    OneBlockRead(sb);
+    OneBlockRead(gd);
+    OneBlockRead(InodeBitmap);
+    OneBlockRead(BlockBitmap);
+    int j = 0;
+    for(; j < 10; j++)
+        OneBlockRead(ids[j]);
+    i += 2 * 4;     //TODO
 	/*加载用户程序至内存*/
-    char buf[12*SECTSIZE];    //size of uMain.elf
-    int i = 0;
-    for(; i < 12; i++){
-        readSect(buf + SECTSIZE * i, 201+i);
+    char buf2[20*SECTSIZE];    //size of uMain.elf
+
+    j = 0;
+    for(; j < 20; j++){
+        readSect(buf2 + SECTSIZE * j, i++);
     }
-    struct ELFHeader *elf = (void *)buf;
-    struct ProgramHeader *ph = (void *)buf + elf->phoff;
+    struct ELFHeader *elf = (void *)buf2;
+    struct ProgramHeader *ph = (void *)buf2 + elf->phoff;
     i = 0;
     for(;i < elf->phnum;i++,ph++)
-        memcpy((void *)ph->vaddr, buf + ph->off, ph->memsz);
+        memcpy((void *)ph->vaddr, buf2 + ph->off, ph->memsz);
     return elf->entry;
 }
 

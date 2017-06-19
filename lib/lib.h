@@ -46,5 +46,19 @@ static inline int exit(){
     return 0;
 }
 
+int sem_init(sem_t *sem, uint32_t value);
+int sem_post(sem_t *sem);
+int sem_wait(sem_t *sem);
+int sem_destroy(sem_t *sem);
+
+int open(char *path, int flags);
+int read(int fd, void *buffer, int size);
+int write(int fd, void *buffer, int size);
+int lseek(int fd, int offset, int whence);
+int close(int fd);
+int remove(char *path);
+
+void ls(char *path);
+void cat(char *path);
 
 #endif

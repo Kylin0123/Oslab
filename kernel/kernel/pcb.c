@@ -46,7 +46,6 @@ void schedule_pcb(){
         if(pcb[i].valid == TRUE && pcb[i].state == RUNNABLE && i != current_pcb)
             scheduled = i;
     }
-    //if(pcb[scheduled].valid == FALSE || (pcb[scheduled].valid == TRUE && pcb[scheduled].state != RUNNABLE)) scheduled = 0;
     if(scheduled == -1) scheduled = 0;
     pcb[scheduled].state = RUNNING;
     pcb[scheduled].timeCount = 10;
@@ -59,7 +58,7 @@ void update_pcb(){
     for(; i < MAX_PCB_NUM; i++){
         if(pcb[i].valid == TRUE && pcb[i].state == BLOCKED){
             pcb[i].sleepTime --;
-            if(pcb[i].sleepTime <= 0){
+        if(pcb[i].sleepTime == 0){
                 pcb[i].state = RUNNABLE;
                 pcb[i].timeCount = 10;
                 //schedule_pcb();
